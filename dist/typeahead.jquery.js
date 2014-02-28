@@ -118,6 +118,12 @@
                 return result;
             };
         },
+        deep: function(obj, path) {
+            for (var i = 0, path = path.split("."), len = path.length; i < len; i++) {
+                obj = obj[path[i]];
+            }
+            return obj;
+        },
         noop: function() {}
     };
     var html = {
@@ -633,7 +639,7 @@
             display = display || "value";
             return _.isFunction(display) ? display : displayFn;
             function displayFn(obj) {
-                return obj[display];
+                return _.deep(obj, display);
             }
         }
         function getTemplates(templates, displayFn) {
@@ -648,7 +654,7 @@
             }
         }
         function isValidName(str) {
-            return /^[_a-zA-Z0-9-]+$/.test(str);
+            return /^[_a-zA-Z0-9-:.]+$/.test(str);
         }
     }();
     var Dropdown = function() {

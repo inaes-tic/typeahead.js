@@ -118,6 +118,12 @@
                 return result;
             };
         },
+        deep: function(obj, path) {
+            for (var i = 0, path = path.split("."), len = path.length; i < len; i++) {
+                obj = obj[path[i]];
+            }
+            return obj;
+        },
         noop: function() {}
     };
     var VERSION = "0.10.1";
@@ -555,7 +561,7 @@
                     this.index.bootstrap(serialized);
                     deferred = $.Deferred().resolve();
                 } else {
-                    deferred = $.ajax(o.url, o.ajax).done(handlePrefetchResponse);
+                    deferred = o.transport ? callbackTransport(o.transport, o.url) : $.ajax(o.url, o.ajax).done(handlePrefetchResponse);
                 }
                 return deferred;
                 function handlePrefetchResponse(resp) {
@@ -563,6 +569,22 @@
                     filtered = o.filter ? o.filter(resp) : resp;
                     that.add(filtered);
                     that._saveToStorage(that.index.serialize(), o.thumbprint, o.ttl);
+                }
+                function callbackTransport(fn, url) {
+                    var deferred = $.Deferred();
+                    fn(url, onSuccess, onError);
+                    return deferred;
+                    function onSuccess(resp) {
+                        _.defer(function() {
+                            handlePrefetchResponse(resp);
+                            deferred.resolve(resp);
+                        });
+                    }
+                    function onError(err) {
+                        _.defer(function() {
+                            deferred.reject(err);
+                        });
+                    }
                 }
             },
             _getFromRemote: function getFromRemote(query, cb) {
@@ -1161,7 +1183,7 @@
             display = display || "value";
             return _.isFunction(display) ? display : displayFn;
             function displayFn(obj) {
-                return obj[display];
+                return _.deep(obj, display);
             }
         }
         function getTemplates(templates, displayFn) {
@@ -1176,7 +1198,7 @@
             }
         }
         function isValidName(str) {
-            return /^[_a-zA-Z0-9-]+$/.test(str);
+            return /^[_a-zA-Z0-9-:.]+$/.test(str);
         }
     }();
     var Dropdown = function() {
